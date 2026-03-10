@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 from pydantic import BaseModel
 
 
@@ -8,9 +8,9 @@ class Game(BaseModel):
     home_team: str
     away_team: str
     event_name: str
-    event_date: str
+    event_date: Optional[str] = None
     venue: str
-
+    ticketmaster_url: Optional[str] = None
 
 class TicketListing(BaseModel):
     vendor: str
@@ -26,7 +26,7 @@ class TicketListing(BaseModel):
 
 
 class GamesResponse(BaseModel):
-    league: str | None = None
+    league: str
     count: int
     games: list[Game]
 
