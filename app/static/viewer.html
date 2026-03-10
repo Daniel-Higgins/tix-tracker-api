@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sports Ticket Data API Viewer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #07111f;
+      color: #f8fafc;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .hero, .panel, .card, .summary-card, .table-wrap {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+    }
+    .hero, .panel, .table-wrap {
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    .muted { color: #94a3b8; }
+    .filters-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    input, select, button, textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #020617;
+      color: white;
+    }
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: monospace;
+    }
+    button {
+      background: #2563eb;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    .games-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    .card {
+      padding: 18px;
+    }
+    .meta {
+      margin: 6px 0;
+      color: #cbd5e1;
+    }
+    .summary-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-bottom: 20px;
+    }
+    .summary-card {
+      padding: 16px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #111827;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      font-size: 12px;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid #1e293b;
+      vertical-align: top;
+    }
+    th { color: #93c5fd; }
+    a { color: #93c5fd; }
+    .hidden { display: none; }
+    pre {
+      overflow: auto;
+      background: #020617;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      padding: 12px;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>Sports Ticket Data API Viewer</h1>
+      <p class="muted">
+        Browse sample games, inspect event summaries, and test scraper payloads against the backend API.
+      </p>
+      <p>
+        Docs: <a href="/docs" target="_blank" rel="noreferrer">/docs</a>
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Game search</h2>
+      <div class="filters-grid">
+        <div>
+          <label>League</label>
+          <input id="league" value="mlb" />
+        </div>
+        <div>
+          <label>Team</label>
+          <input id="team" placeholder="Yankees" />
+        </div>
+        <div>
+          <label>Venue</label>
+          <input id="venue" placeholder="Yankee Stadium" />
+        </div>
+        <div>
+          <label>Days</label>
+          <input id="days" type="number" min="1" max="365" placeholder="30" />
+        </div>
+        <div>
+          <label>Sort</label>
+          <select id="gameSort">
+            <option value="date">Date</option>
+            <option value="home_team">Home team</option>
+            <option value="away_team">Away team</option>
+            <option value="venue">Venue</option>
+          </select>
+        </div>
+        <div>
+          <label>Limit</label>
+          <input id="limit" type="number" min="1" max="100" value="20" />
+        </div>
+      </div>
+      <div style="margin-top: 12px;">
+        <button id="loadGamesButton">Load games</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Games</h2>
+      <div id="gamesCount" class="muted"></div>
+      <div id="games" class="games-grid"></div>
+    </section>
+
+    <section id="eventSection" class="hidden">
+      <div class="panel">
+        <h2 id="eventTitle">Event</h2>
+        <div id="eventMeta" class="muted"></div>
+      </div>
+
+      <div class="summary-grid" id="summaryGrid"></div>
+
+      <section class="panel">
+        <h2>Ticket filters</h2>
+        <div class="filters-grid">
+          <div>
+            <label>Vendor</label>
+            <select id="vendorFilter">
+              <option value="">All vendors</option>
+            </select>
+          </div>
+          <div>
+            <label>Section group</label>
+            <select id="sectionGroupFilter">
+              <option value="">All section groups</option>
+            </select>
+          </div>
+          <div>
+            <label>Section text</label>
+            <input id="sectionFilter" placeholder="Club 205" />
+          </div>
+          <div>
+            <label>Minimum quantity</label>
+            <select id="minQuantityFilter">
+              <option value="">Any</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="4">4+</option>
+            </select>
+          </div>
+          <div>
+            <label>Minimum price</label>
+            <input id="minPriceFilter" type="number" min="0" placeholder="50" />
+          </div>
+          <div>
+            <label>Maximum price</label>
+            <input id="maxPriceFilter" type="number" min="0" placeholder="200" />
+          </div>
+          <div>
+            <label>Sort</label>
+            <select id="ticketSortFilter">
+              <option value="price_asc">Price low to high</option>
+              <option value="price_desc">Price high to low</option>
+              <option value="vendor">Vendor</option>
+              <option value="section">Section</option>
+              <option value="quantity_asc">Quantity low to high</option>
+              <option value="quantity_desc">Quantity high to low</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top: 12px;">
+          <button id="loadTicketsButton">Load tickets</button>
+        </div>
+      </section>
+
+      <section class="table-wrap">
+        <h2>Listings</h2>
+        <div id="ticketsCount" class="muted"></div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Vendor</th>
+                <th>Section</th>
+                <th>Section Group</th>
+                <th>Row</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Link</th>
+              </tr>
+            </thead>
+            <tbody id="ticketsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="panel">
+      <h2>Scrape compare test</h2>
+      <p class="muted">Paste a JSON body and hit <code>POST /scrape/compare</code>.</p>
+      <textarea id="scrapePayload">{
+  "event_id": "custom-test-game",
+  "event_name": "Boston Red Sox at New York Yankees",
+  "vendor_urls": {
+    "stubhub": "https://www.stubhub.com/",
+    "seatgeek": "https://seatgeek.com/",
+    "vividseats": "https://www.vividseats.com/"
+  }
+}</textarea>
+      <div style="margin-top: 12px;">
+        <button id="runScrapeButton">Run scrape compare</button>
+      </div>
+      <pre id="scrapeOutput">{}</pre>
+    </section>
+  </div>
+
+  <script>
+    const gamesEl = document.getElementById("games");
+    const gamesCountEl = document.getElementById("gamesCount");
+    const eventSectionEl = document.getElementById("eventSection");
+    const eventTitleEl = document.getElementById("eventTitle");
+    const eventMetaEl = document.getElementById("eventMeta");
+    const summaryGridEl = document.getElementById("summaryGrid");
+    const ticketsCountEl = document.getElementById("ticketsCount");
+    const ticketsBodyEl = document.getElementById("ticketsBody");
+
+    const vendorFilterEl = document.getElementById("vendorFilter");
+    const sectionGroupFilterEl = document.getElementById("sectionGroupFilter");
+
+    let currentEventId = null;
+
+    document.getElementById("loadGamesButton").addEventListener("click", loadGames);
+    document.getElementById("loadTicketsButton").addEventListener("click", loadTickets);
+    document.getElementById("runScrapeButton").addEventListener("click", runScrapeCompare);
+
+    loadGames();
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, options);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Request failed");
+      }
+
+      return data;
+    }
+
+    async function loadGames() {
+      const params = new URLSearchParams();
+
+      const league = document.getElementById("league").value.trim();
+      const team = document.getElementById("team").value.trim();
+      const venue = document.getElementById("venue").value.trim();
+      const days = document.getElementById("days").value.trim();
+      const sort = document.getElementById("gameSort").value;
+      const limit = document.getElementById("limit").value.trim();
+
+      if (league) params.set("league", league);
+      if (team) params.set("team", team);
+      if (venue) params.set("venue", venue);
+      if (days) params.set("days", days);
+      if (sort) params.set("sort", sort);
+      if (limit) params.set("limit", limit);
+
+      gamesEl.innerHTML = "<div class='card'>Loading games...</div>";
+
+      try {
+        const data = await api(`/games?${params.toString()}`);
+        gamesCountEl.textContent = `${data.count} games found`;
+
+        if (!data.games.length) {
+          gamesEl.innerHTML = "<div class='card'>No games found.</div>";
+          return;
+        }
+
+        gamesEl.innerHTML = data.games.map((game) => `
+          <div class="card">
+            <div class="pill">${escapeHtml(game.league.toUpperCase())}</div>
+            <h3>${escapeHtml(game.event_name)}</h3>
+            <p class="meta"><strong>Date:</strong> ${formatDate(game.event_date)}</p>
+            <p class="meta"><strong>Venue:</strong> ${escapeHtml(game.venue)}</p>
+            <p class="meta"><strong>Home:</strong> ${escapeHtml(game.home_team)}</p>
+            <p class="meta"><strong>Away:</strong> ${escapeHtml(game.away_team)}</p>
+            <button onclick="selectEvent('${encodeURIComponent(game.event_id)}')">Open event</button>
+          </div>
+        `).join("");
+      } catch (error) {
+        gamesEl.innerHTML = `<div class="card">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    async function selectEvent(encodedEventId) {
+      currentEventId = decodeURIComponent(encodedEventId);
+      eventSectionEl.classList.remove("hidden");
+      await loadEventSummary();
+      await loadTickets();
+      window.scrollTo({ top: eventSectionEl.offsetTop - 12, behavior: "smooth" });
+    }
+
+    async function loadEventSummary() {
+      if (!currentEventId) return;
+
+      try {
+        const [event, summary] = await Promise.all([
+          api(`/events/${encodeURIComponent(currentEventId)}`),
+          api(`/events/${encodeURIComponent(currentEventId)}/summary`)
+        ]);
+
+        eventTitleEl.textContent = event.event_name;
+        eventMetaEl.innerHTML = `
+          <div class="pill">${escapeHtml(event.league.toUpperCase())}</div>
+          <div class="pill">${escapeHtml(event.venue)}</div>
+          <div class="pill">${formatDate(event.event_date)}</div>
+        `;
+
+        summaryGridEl.innerHTML = `
+          <div class="summary-card">
+            <div class="muted">Total listings</div>
+            <h3>${summary.total_listings}</h3>
+          </div>
+          <div class="summary-card">
+            <div class="muted">Lowest price</div>
+            <h3>${summary.lowest_price !== null ? formatCurrency(summary.lowest_price) : "—"}</h3>
+          </div>
+          <div class="summary-card">
+            <div class="muted">Highest price</div>
+            <h3>${summary.highest_price !== null ? formatCurrency(summary.highest_price) : "—"}</h3>
+          </div>
+          <div class="summary-card">
+            <div class="muted">Vendors</div>
+            <div>${summary.vendors.map((v) => `<div>${escapeHtml(v.vendor)}: ${formatCurrency(v.lowest_price)} (${v.listing_count})</div>`).join("")}</div>
+          </div>
+        `;
+
+        populateSelect(
+          vendorFilterEl,
+          summary.vendors.map((item) => item.vendor),
+          "All vendors"
+        );
+
+        populateSelect(
+          sectionGroupFilterEl,
+          summary.section_groups.map((item) => item.section_group),
+          "All section groups"
+        );
+      } catch (error) {
+        summaryGridEl.innerHTML = `<div class="summary-card">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    async function loadTickets() {
+      if (!currentEventId) return;
+
+      const params = new URLSearchParams();
+      const vendor = vendorFilterEl.value;
+      const sectionGroup = sectionGroupFilterEl.value;
+      const section = document.getElementById("sectionFilter").value.trim();
+      const minQuantity = document.getElementById("minQuantityFilter").value;
+      const minPrice = document.getElementById("minPriceFilter").value.trim();
+      const maxPrice = document.getElementById("maxPriceFilter").value.trim();
+      const sort = document.getElementById("ticketSortFilter").value;
+
+      if (vendor) params.set("vendor", vendor);
+      if (sectionGroup) params.set("section_group", sectionGroup);
+      if (section) params.set("section", section);
+      if (minQuantity) params.set("min_quantity", minQuantity);
+      if (minPrice) params.set("min_price", minPrice);
+      if (maxPrice) params.set("max_price", maxPrice);
+      if (sort) params.set("sort", sort);
+
+      ticketsBodyEl.innerHTML = "<tr><td colspan='7'>Loading tickets...</td></tr>";
+
+      try {
+        const data = await api(`/events/${encodeURIComponent(currentEventId)}/tickets?${params.toString()}`);
+        ticketsCountEl.textContent = `${data.count} listings returned`;
+
+        if (!data.listings.length) {
+          ticketsBodyEl.innerHTML = "<tr><td colspan='7'>No listings matched those filters.</td></tr>";
+          return;
+        }
+
+        ticketsBodyEl.innerHTML = data.listings.map((ticket) => `
+          <tr>
+            <td>${escapeHtml(ticket.vendor)}</td>
+            <td>${escapeHtml(ticket.section)}</td>
+            <td>${escapeHtml(ticket.section_group)}</td>
+            <td>${escapeHtml(ticket.row)}</td>
+            <td>${ticket.quantity}</td>
+            <td>${formatCurrency(ticket.price, ticket.currency)}</td>
+            <td><a href="${escapeAttribute(ticket.listing_url)}" target="_blank" rel="noreferrer">View</a></td>
+          </tr>
+        `).join("");
+      } catch (error) {
+        ticketsBodyEl.innerHTML = `<tr><td colspan='7'>${escapeHtml(error.message)}</td></tr>`;
+      }
+    }
+
+    async function runScrapeCompare() {
+      const output = document.getElementById("scrapeOutput");
+      const raw = document.getElementById("scrapePayload").value;
+
+      output.textContent = "Running...";
+
+      try {
+        const body = JSON.parse(raw);
+        const data = await api("/scrape/compare", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+        output.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        output.textContent = String(error.message || error);
+      }
+    }
+
+    function populateSelect(selectEl, items, defaultLabel) {
+      const currentValue = selectEl.value;
+      selectEl.innerHTML = `<option value="">${defaultLabel}</option>` +
+        items.map((item) => `<option value="${escapeAttribute(item)}">${escapeHtml(item)}</option>`).join("");
+
+      if (items.includes(currentValue)) {
+        selectEl.value = currentValue;
+      }
+    }
+
+    function formatDate(value) {
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+    }
+
+    function formatCurrency(value, currency = "USD") {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 0
+      }).format(value);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttribute(value) {
+      return String(value).replaceAll('"', "&quot;");
+    }
+
+    window.selectEvent = selectEvent;
+  </script>
+</body>
+</html>

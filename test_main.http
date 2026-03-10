@@ -1,0 +1,37 @@
+GET http://127.0.0.1:8000/health
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/games
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/games?team=Yankees
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/events/mlb-yankees-redsox-2026-03-12
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/events/mlb-yankees-redsox-2026-03-12/tickets
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/events/mlb-yankees-redsox-2026-03-12/tickets?section_group=Upper%20Deck&max_price=100
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/events/mlb-yankees-redsox-2026-03-12/summary
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/viewer
+Accept: text/html
